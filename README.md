@@ -19,7 +19,7 @@ git clone https://github.com/BennettChina/group_helper.git --depth=1
 权限: BOT管理员 (Manager)
 
 #启用或禁用欢迎词
-命令: <header> we <on|off> <QQ群号>
+命令: <header> we <enable|disable> <QQ群号>
 范围: 私聊
 权限: BOT管理 (Manager)
 ```
