@@ -8,8 +8,8 @@ export async function main( { sendMessage, matchResult, client, redis }: InputPa
 	const [ groupId ] = match.match;
 	let {
 		content,
-		enable = false
-	}: { content: string, enable: boolean } = await redis.getHash( `group-helper.welcome-content.${ groupId }` );
+		enable = "false"
+	}: { content: string, enable: string } = await redis.getHash( `group-helper.welcome-content.${ groupId }` );
 	
 	if ( match.isOn() ) {
 		if ( !content ) {
@@ -17,15 +17,15 @@ export async function main( { sendMessage, matchResult, client, redis }: InputPa
 			return;
 		}
 		
-		await redis.setHash( `group-helper.welcome-content.${ groupId }`, { enable: true } );
+		await redis.setHash( `group-helper.welcome-content.${ groupId }`, { enable: "true" } );
 		client.on( "notice.group.increase", groupIncrease( groupId ) );
 	} else {
-		if ( !content && !enable ) {
+		if ( !content && enable === "false" ) {
 			await sendMessage( `[${ groupId }]未启用欢迎词` );
 			return;
 		}
 		
-		await redis.setHash( `group-helper.welcome-content.${ groupId }`, { enable: false } );
+		await redis.setHash( `group-helper.welcome-content.${ groupId }`, { enable: "false" } );
 	}
 	await sendMessage( `[${ groupId }]的新群员入群欢迎词已${ match.isOn() ? '启用' : '禁用' }！` );
 }
@@ -36,9 +36,9 @@ export function groupIncrease( groupId: string) {
 		if ( eventData.group_id === parseInt( groupId ) ) {
 			let {
 				content,
-				enable = false
-			}: { content: string, enable: boolean } = await bot.redis.getHash( `group-helper.welcome-content.${ groupId }` );
-			if ( enable ) {
+				enable = "false"
+			}: { content: string, enable: string } = await bot.redis.getHash( `group-helper.welcome-content.${ groupId }` );
+			if ( enable === "true" ) {
 				content = " " + content.replace( '{}', eventData.nickname )
 				const sendMsg = bot.message.getSendMessageFunc( eventData.user_id, MessageType.Group, eventData.group_id );
 				await sendMsg( content, true );

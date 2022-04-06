@@ -40,9 +40,10 @@ export async function init(): Promise<PluginSetting> {
 		let groupId = key.split( '.' )[2]
 		let {
 			content,
-			enable = false
-		}: { content: string, enable: boolean } = await bot.redis.getHash( `group-helper.welcome-content.${ groupId }` );
-		if ( enable && content ) {
+			enable = "false"
+		}: { content: string, enable: string } = await bot.redis.getHash( `group-helper.welcome-content.${ groupId }` );
+		
+		if ( enable === "true" && content ) {
 			bot.client.on( "notice.group.increase", groupIncrease( groupId ) );
 		}
 	}
