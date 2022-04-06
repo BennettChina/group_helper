@@ -43,7 +43,7 @@ export async function init(): Promise<PluginSetting> {
 			enable = false
 		}: { content: string, enable: boolean } = await bot.redis.getHash( `group-helper.welcome-content.${ groupId }` );
 		if ( enable && content ) {
-			bot.client.on( "notice.group.increase", groupIncrease( groupId, content ) );
+			bot.client.on( "notice.group.increase", groupIncrease( groupId ) );
 		}
 	}
 	

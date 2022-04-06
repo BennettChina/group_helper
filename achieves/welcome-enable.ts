@@ -18,7 +18,7 @@ export async function main( { sendMessage, matchResult, client, redis }: InputPa
 		}
 		
 		await redis.setHash( `group-helper.welcome-content.${ groupId }`, { enable: true } );
-		client.on( "notice.group.increase", groupIncrease( groupId, content ) );
+		client.on( "notice.group.increase", groupIncrease( groupId ) );
 	} else {
 		if ( !content && !enable ) {
 			await sendMessage( `[${ groupId }]未启用欢迎词` );
@@ -31,12 +31,13 @@ export async function main( { sendMessage, matchResult, client, redis }: InputPa
 }
 
 
-export function groupIncrease( groupId: string, content: string ) {
+export function groupIncrease( groupId: string) {
 	return async function ( eventData: sdk.MemberIncreaseEventData ) {
 		if ( eventData.group_id === parseInt( groupId ) ) {
 			let {
+				content,
 				enable = false
-			}: { enable: boolean } = await bot.redis.getHash( `group-helper.welcome-content.${ groupId }` );
+			}: { content: string, enable: boolean } = await bot.redis.getHash( `group-helper.welcome-content.${ groupId }` );
 			if ( enable ) {
 				content = " " + content.replace( '{}', eventData.nickname )
 				const sendMsg = bot.message.getSendMessageFunc( eventData.user_id, MessageType.Group, eventData.group_id );
