@@ -7,7 +7,7 @@ import { groupIncrease } from "./achieves/welcome-enable";
 
 const group_welcome: OrderConfig = {
 	type: "order",
-	cmdKey: "silvery-star.welcome_new",
+	cmdKey: "group-helper.welcome_new",
 	desc: [ "欢迎新成员", "[群号] [任意内容]" ],
 	headers: [ "sw" ],
 	regexps: [ "\\d+", ".+" ],
@@ -20,7 +20,7 @@ const group_welcome: OrderConfig = {
 const group_welcome_enable: SwitchConfig = {
 	type: "switch",
 	mode: "single",
-	cmdKey: "silvery-star.welcome_enable",
+	cmdKey: "group-helper.welcome_enable",
 	desc: [ "开关欢迎词", "#{OPT} [群号]" ],
 	header: "we",
 	regexp: [ "#{OPT}", "\\d+" ],
