@@ -1,4 +1,5 @@
 import { InputParameter } from "@modules/command";
+import { DB_KEY } from "#group_helper/util/constants";
 
 export async function main( { sendMessage, messageData, redis, client, config }: InputParameter ): Promise<void> {
 	let data = messageData.raw_message;
@@ -11,6 +12,6 @@ export async function main( { sendMessage, messageData, redis, client, config }:
 		return;
 	}
 	
-	await redis.setHash( `group-helper.welcome-content.${ groupId }`, { content } );
+	await redis.setHash( `${ DB_KEY.welcome_content_key }.${ groupId }`, { content } );
 	await sendMessage( '新群员入群欢迎词已设置成功！' );
 }

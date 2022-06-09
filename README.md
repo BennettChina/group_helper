@@ -1,8 +1,10 @@
-本项目为 [Adachi-BOT](https://github.com/SilveryStar/Adachi-BOT) 衍生插件，用于设置QQ群的入群欢迎词。
+本项目为 [Adachi-BOT](https://github.com/SilveryStar/Adachi-BOT) 衍生插件，用于辅助管理QQ群的插件。
 
 ## 更新须知
 
-本次更新为了规范 `cmdKey` 更改了 `cmdKey`的前缀，因此如果你修改过插件的 `header` 那么需要手动替换下新的 `cmdKey` 的前缀，`Linux` 可使用下面的命令修改， `Windows` 请自行修改 `silvery-star.welcome_new` 为 `group-helper.welcome_new` 和 `silvery-star.welcome_enable` 为 `group-helper.welcome_enable` 。
+本次更新为了规范 `cmdKey` 更改了 `cmdKey`的前缀，因此如果你修改过插件的 `header` 那么需要手动替换下新的 `cmdKey` 的前缀，`Linux` 可使用下面的命令修改， `Windows`
+请自行修改 `silvery-star.welcome_new` 为 `group-helper.welcome_new` 和 `silvery-star.welcome_enable`
+为 `group-helper.welcome_enable` 。
 
 Linux
 
@@ -36,7 +38,7 @@ git clone https://ghproxy.com/https://github.com/BennettChina/group_helper.git
 git clone https://gitclone.com/github.com/BennettChina/group_helper.git
 ```
 
->感谢[GitClone](https://gitclone.com/) 和 [GitHub Proxy](https://ghproxy.com/) 提供的镜像服务！
+> 感谢[GitClone](https://gitclone.com/) 和 [GitHub Proxy](https://ghproxy.com/) 提供的镜像服务！
 
 ## 使用方法
 
@@ -48,8 +50,22 @@ git clone https://gitclone.com/github.com/BennettChina/group_helper.git
 范围: 私聊
 权限: BOT管理员 (Manager)
 
-#启用或禁用欢迎词
+# 启用或禁用欢迎词
 命令: <header> we <enable|disable> <QQ群号>
 范围: 私聊
 权限: BOT管理 (Manager)
+
+# 添加或移除屏蔽词（多个屏蔽词以英文逗号隔开，屏蔽词支持正则）
+命令: <header> banword <add|remove> <屏蔽词>
+范围: 私聊/群聊(私聊仅Master可用，用来设置全局屏蔽词)
+权限: BOT管理 (Manager)
+
+# 查看已设置的屏蔽词
+命令: <header> fwl
+范围: 私聊/群聊(私聊仅Master可用，用来查看已设置的全局屏蔽词)
+权限: BOT管理 (Manager)
 ```
+
+## 更新日志
+
+- 2022/06/09 添加 `#banword` 和 `#fwl` 指令来管理群聊屏蔽词。
