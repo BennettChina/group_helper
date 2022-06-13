@@ -1,23 +1,5 @@
 本项目为 [Adachi-BOT](https://github.com/SilveryStar/Adachi-BOT) 衍生插件，用于辅助管理QQ群的插件。
 
-## 更新须知
-
-本次更新为了规范 `cmdKey` 更改了 `cmdKey`的前缀，因此如果你修改过插件的 `header` 那么需要手动替换下新的 `cmdKey` 的前缀，`Linux` 可使用下面的命令修改， `Windows`
-请自行修改 `silvery-star.welcome_new` 为 `group-helper.welcome_new` 和 `silvery-star.welcome_enable`
-为 `group-helper.welcome_enable` 。
-
-Linux
-
-```shell
-sed -i 's/silvery-star.welcome_/group-helper.welcome_/' config/commands.yml
-```
-
-macOS
-
-```shell
-sed -i '' 's/silvery-star.welcome_/group-helper.welcome_/' config/commands.yml
-```
-
 ## 安装
 
 在 `src/plugins`目录下使用下面的命令
@@ -69,3 +51,24 @@ git clone https://gitclone.com/github.com/BennettChina/group_helper.git
 ## 更新日志
 
 - 2022/06/09 添加 `#banword` 和 `#fwl` 指令来管理群聊屏蔽词。
+
+<details>
+    <summary style="padding-left: 15px;">2022/04/13 规范 <code>cmdKey</code> </summary>
+
+本次更新为了规范 `cmdKey` 更改了 `cmdKey`的前缀，因此如果你修改过插件的 `header` 那么需要手动替换下新的 `cmdKey` 的前缀，`Linux` 可使用下面的命令修改， `Windows`
+请自行修改 `silvery-star.welcome_new` 为 `group-helper.welcome_new` 和 `silvery-star.welcome_enable`
+为 `group-helper.welcome_enable` 。
+
+Linux
+
+```shell
+sed -i 's/silvery-star.welcome_/group-helper.welcome_/' config/commands.yml
+```
+
+macOS
+
+```shell
+sed -i '' 's/silvery-star.welcome_/group-helper.welcome_/' config/commands.yml
+```
+
+</details>
