@@ -83,7 +83,7 @@ async function listeningGroupMsg( { redis, client, logger, message, command, aut
 		const { user_id, nickname } = messageData.sender;
 		
 		// 判断消息是否指令消息，指令消息不需要判断是否有屏蔽词
-		const atBOTReg: RegExp = new RegExp( `^ *\\[CQ:at,qq=${ config.number }.*]` );
+		const atBOTReg: RegExp = new RegExp( `^ *\\[CQ:at,qq=${ config.number }.*?]` );
 		if ( config.atBOT && atBOTReg.test( raw_message ) ) {
 			raw_message = raw_message.replace( atBOTReg, "" ).trim();
 		}

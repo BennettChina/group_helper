@@ -50,6 +50,7 @@ git clone https://gitclone.com/github.com/BennettChina/group_helper.git
 
 ## 更新日志
 
+- 2022/06/23 fixed: 修复使用AT指令时会将消息全部替换为空导致继续匹配屏蔽词的问题
 - 2022/06/09 添加 `#banword` 和 `#fwl` 指令来管理群聊屏蔽词。
 
 <details>
