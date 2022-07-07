@@ -28,28 +28,29 @@ git clone https://gitclone.com/github.com/BennettChina/group_helper.git
 
 ```
 # 设置欢迎词
-命令: <header> sw <QQ群号> <欢迎词>
-范围: 私聊
-权限: BOT管理员 (Manager)
+命令: <header> sw <欢迎词>
+范围: 群聊
+权限: 群管理员
 
 # 启用或禁用欢迎词
-命令: <header> we <enable|disable> <QQ群号>
-范围: 私聊
-权限: BOT管理 (Manager)
+命令: <header> we <enable|disable>
+范围: 群聊
+权限: 群管理员
 
 # 添加或移除屏蔽词（多个屏蔽词以英文逗号隔开，屏蔽词支持正则）
 命令: <header> banword <add|remove> <屏蔽词>
 范围: 私聊/群聊(私聊仅Master可用，用来设置全局屏蔽词)
-权限: BOT管理 (Manager)
+权限: 群管理员
 
 # 查看已设置的屏蔽词
 命令: <header> fwl
 范围: 私聊/群聊(私聊仅Master可用，用来查看已设置的全局屏蔽词)
-权限: BOT管理 (Manager)
+权限: 群管理员
 ```
 
 ## 更新日志
 
+- 2022/07/07 欢迎词指令修改为仅在群聊使用，群里使用指令的权限修改为群管理员使用。
 - 2022/06/23 fixed: 修复使用AT指令时会将消息全部替换为空导致继续匹配屏蔽词的问题
 - 2022/06/09 添加 `#banword` 和 `#fwl` 指令来管理群聊屏蔽词。
 

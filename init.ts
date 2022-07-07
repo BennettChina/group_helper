@@ -13,9 +13,9 @@ const group_welcome: OrderConfig = {
 	cmdKey: "group-helper.welcome_new",
 	desc: [ "欢迎新成员", "[群号] [任意内容]" ],
 	headers: [ "sw" ],
-	regexps: [ "\\d+", ".+" ],
-	scope: MessageScope.Private,
-	auth: AuthLevel.Manager,
+	regexps: [ ".+" ],
+	scope: MessageScope.Group,
+	auth: AuthLevel.User,
 	main: "achieves/set-welcome",
 	detail: "该指令用于设置欢迎新成员的欢迎词"
 };
@@ -24,13 +24,13 @@ const group_welcome_enable: SwitchConfig = {
 	type: "switch",
 	mode: "single",
 	cmdKey: "group-helper.welcome_enable",
-	desc: [ "开关欢迎词", "#{OPT} [群号]" ],
+	desc: [ "开关欢迎词", "#{OPT}" ],
 	header: "we",
-	regexp: [ "#{OPT}", "\\d+" ],
+	regexp: [ "#{OPT}" ],
 	onKey: "enable",
 	offKey: "disable",
-	scope: MessageScope.Private,
-	auth: AuthLevel.Manager,
+	scope: MessageScope.Group,
+	auth: AuthLevel.User,
 	main: "achieves/welcome-enable",
 	detail: "该指令用于启用或禁用欢迎词"
 };
@@ -45,7 +45,7 @@ const group_forbidden_word: SwitchConfig = {
 	onKey: "add",
 	offKey: "remove",
 	scope: MessageScope.Both,
-	auth: AuthLevel.Manager,
+	auth: AuthLevel.User,
 	main: "achieves/forbidden_word",
 	detail: "该指令用于添加或者移除屏蔽词，多个屏蔽词可用英文逗号隔开。（屏蔽词支持正则）"
 };
@@ -57,7 +57,7 @@ const forbidden_word_list: OrderConfig = {
 	headers: [ "fwl" ],
 	regexps: [ "" ],
 	scope: MessageScope.Both,
-	auth: AuthLevel.Manager,
+	auth: AuthLevel.User,
 	main: "achieves/forbidden_word_list",
 	detail: "该指令用于查看已设置的屏蔽词"
 };
@@ -72,7 +72,7 @@ async function initWelcome( { redis, client }: BOT ) {
 		}: { content: string, enable: string } = await redis.getHash( `${ DB_KEY.welcome_content_key }.${ groupId }` );
 		
 		if ( enable === "true" && content ) {
-			client.on( "notice.group.increase", groupIncrease( groupId ) );
+			client.on( "notice.group.increase", groupIncrease( parseInt( groupId ) ) );
 		}
 	}
 }

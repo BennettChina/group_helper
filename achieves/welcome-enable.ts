@@ -1,16 +1,21 @@
 import { InputParameter, SwitchMatchResult } from "@modules/command";
 import * as sdk from "oicq";
+import { GroupMessageEventData } from "oicq";
 import { MessageType } from "@modules/message";
 import bot from 'ROOT';
 import { DB_KEY } from "#group_helper/util/constants";
 
-export async function main( { sendMessage, matchResult, client, redis }: InputParameter ): Promise<void> {
+export async function main( { sendMessage, matchResult, messageData, client, redis }: InputParameter ): Promise<void> {
 	const match = <SwitchMatchResult>matchResult;
-	const [ groupId ] = match.match;
+	const { sender: { role }, group_id } = <GroupMessageEventData>messageData;
+	if ( role === 'member' ) {
+		await sendMessage( '您不是本群管理不能使用该指令', true );
+		return;
+	}
 	let {
 		content,
 		enable = "false"
-	}: { content: string, enable: string } = await redis.getHash( `${ DB_KEY.welcome_content_key }.${ groupId }` );
+	}: { content: string, enable: string } = await redis.getHash( `${ DB_KEY.welcome_content_key }.${ group_id }` );
 	
 	if ( match.isOn() ) {
 		if ( !content ) {
@@ -18,23 +23,23 @@ export async function main( { sendMessage, matchResult, client, redis }: InputPa
 			return;
 		}
 		
-		await redis.setHash( `${ DB_KEY.welcome_content_key }.${ groupId }`, { enable: "true" } );
-		client.on( "notice.group.increase", groupIncrease( groupId ) );
+		await redis.setHash( `${ DB_KEY.welcome_content_key }.${ group_id }`, { enable: "true" } );
+		client.on( "notice.group.increase", groupIncrease( group_id ) );
 	} else {
 		if ( !content && enable === "false" ) {
-			await sendMessage( `[${ groupId }]未启用欢迎词` );
+			await sendMessage( `本群未启用欢迎词` );
 			return;
 		}
 		
-		await redis.setHash( `${ DB_KEY.welcome_content_key }.${ groupId }`, { enable: "false" } );
+		await redis.setHash( `${ DB_KEY.welcome_content_key }.${ group_id }`, { enable: "false" } );
 	}
-	await sendMessage( `[${ groupId }]的新群员入群欢迎词已${ match.isOn() ? '启用' : '禁用' }！` );
+	await sendMessage( `本群的新群员入群欢迎词已${ match.isOn() ? '启用' : '禁用' }！` );
 }
 
 
-export function groupIncrease( groupId: string ) {
+export function groupIncrease( groupId: number ) {
 	return async function ( eventData: sdk.MemberIncreaseEventData ) {
-		if ( eventData.group_id === parseInt( groupId ) ) {
+		if ( eventData.group_id === groupId ) {
 			let {
 				content,
 				enable = "false"

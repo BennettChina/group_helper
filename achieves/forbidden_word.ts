@@ -3,21 +3,13 @@ import { checkAuth } from "#group_helper/util/tools";
 import { isGroupMessage } from "@modules/message";
 import { DB_KEY } from "#group_helper/util/constants";
 
-export async function main( {
-	                            sendMessage,
-	                            messageData,
-	                            auth,
-	                            redis,
-	                            matchResult,
-	                            logger
-                            }: InputParameter ): Promise<void> {
+export async function main( input: InputParameter ): Promise<void> {
+	const { sendMessage, messageData, redis, matchResult, logger } = input;
 	const match = <SwitchMatchResult>matchResult;
 	const [ forbidden_words ] = match.match;
 	// 检查权限，私聊设置全局屏蔽词需要master权限
-	const check = await checkAuth( messageData, auth );
+	const check = await checkAuth( input, forbidden_words );
 	if ( !check ) {
-		await sendMessage( '您的权限不能在私聊中使用该指令' );
-		logger.warn( `[${ messageData.user_id }]尝试在私聊中设置全局屏蔽词[${ forbidden_words }]，权限不足未能设置。` );
 		return;
 	}
 	
