@@ -5,7 +5,7 @@ import { MessageScope, MessageType } from "@modules/message";
 import { AuthLevel } from "@modules/management/auth";
 import { groupIncrease } from "./achieves/welcome-enable";
 import { BOT } from "@modules/bot";
-import { GroupMessageEventData } from "oicq";
+import { GroupMessageEventData, MemberDecreaseEventData } from "oicq";
 import { DB_KEY } from "#group_helper/util/constants";
 
 const group_welcome: OrderConfig = {
@@ -128,6 +128,16 @@ async function listeningGroupMsg( { redis, client, logger, message, command, aut
 	} );
 }
 
+function decreaseGroup( bot: BOT ) {
+	return async function ( memberData: MemberDecreaseEventData ) {
+		// 如果退出群聊的是 BOT 那么就把该群聊的新成员入群监听和屏蔽词去掉
+		if ( memberData.user_id === bot.config.number ) {
+			await bot.redis.deleteKey( `${ DB_KEY.welcome_content_key }.${ memberData.group_id }` );
+			await bot.redis.deleteKey( `${ DB_KEY.forbidden_words_key }.${ memberData.group_id }` );
+		}
+	}
+}
+
 // 不可 default 导出，函数名固定
 export async function init( bot: BOT ): Promise<PluginSetting> {
 	// 初始化已经启用欢迎词的群监听事件
@@ -137,6 +147,10 @@ export async function init( bot: BOT ): Promise<PluginSetting> {
 	// 监听群聊消息，处理包含屏蔽词的消息
 	await listeningGroupMsg( bot );
 	bot.logger.mark( "--[group_helper]--初始化屏蔽词监听事件完成..." )
+	
+	// 监听群聊退出事件
+	bot.client.on( "notice.group.decrease", decreaseGroup( bot ) );
+	bot.logger.info( "[group_helper]--群聊退出事件监听已启动成功!" );
 	
 	return {
 		pluginName: "group_helper",
