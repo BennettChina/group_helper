@@ -22,3 +22,14 @@ export const checkAuth: ( input: InputParameter, forbidden_words: string ) => Pr
 		}
 		return true;
 	}
+
+/**
+ * 将QQ处理过的字符串解码
+ * @param str html encode string
+ */
+export function htmlDecode( str: string ): string {
+	return str.replace( /&#(\d+);/gi, function ( match, numStr ) {
+		const num = parseInt( numStr, 10 );
+		return String.fromCharCode( num );
+	} );
+}

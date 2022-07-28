@@ -1,12 +1,14 @@
 import { InputParameter, SwitchMatchResult } from "@modules/command";
-import { checkAuth } from "#group_helper/util/tools";
+import { checkAuth, htmlDecode } from "#group_helper/util/tools";
 import { isGroupMessage } from "@modules/message";
 import { DB_KEY } from "#group_helper/util/constants";
 
 export async function main( input: InputParameter ): Promise<void> {
 	const { sendMessage, messageData, redis, matchResult, logger } = input;
 	const match = <SwitchMatchResult>matchResult;
-	const [ forbidden_words ] = match.match;
+	let [ forbidden_words ] = match.match;
+	// 解码被处理过的正则字符串
+	forbidden_words = htmlDecode( forbidden_words );
 	// 检查权限，私聊设置全局屏蔽词需要master权限
 	const check = await checkAuth( input, forbidden_words );
 	if ( !check ) {
