@@ -154,6 +154,7 @@ export async function init( bot: BOT ): Promise<PluginSetting> {
 	
 	return {
 		pluginName: "group_helper",
-		cfgList: [ group_welcome, group_welcome_enable, group_forbidden_word, forbidden_word_list ]
+		cfgList: [ group_welcome, group_welcome_enable, group_forbidden_word, forbidden_word_list ],
+		repo: "BennettChina/group_helper"
 	};
 }
