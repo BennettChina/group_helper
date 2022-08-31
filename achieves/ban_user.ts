@@ -9,9 +9,9 @@ function hasBanTime( message: string ): {
 } {
 	const res: RegExpExecArray | null = /.+]\s*((?<day>\d{1,2}d)?(?<hours>\d+h)?(?<minutes>\d+m?)?){1,3}/.exec( message );
 	return {
-		day: parseInt( res?.groups?.day || "", 10 ) || 0,
-		hours: parseInt( res?.groups?.hours || "", 10 ) || 0,
-		minutes: parseInt( res?.groups?.minutes || "", 10 ) || 0
+		day: parseInt( res?.groups?.day || "0", 10 ),
+		hours: parseInt( res?.groups?.hours || "0", 10 ),
+		minutes: parseInt( res?.groups?.minutes || "0", 10 )
 	}
 }
 
