@@ -33,3 +33,8 @@ export function htmlDecode( str: string ): string {
 		return String.fromCharCode( num );
 	} );
 }
+
+export function isAt( message: string ): number {
+	const res: RegExpExecArray | null = /\[cq:at,qq=(?<id>\d+),text=.*]/.exec( message );
+	return parseInt( res?.groups?.id || "", 10 );
+}

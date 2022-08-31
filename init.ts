@@ -5,7 +5,7 @@ import { MessageScope, MessageType } from "@modules/message";
 import { AuthLevel } from "@modules/management/auth";
 import { groupIncrease } from "./achieves/welcome-enable";
 import { BOT } from "@modules/bot";
-import { GroupMessageEventData, MemberDecreaseEventData } from "oicq";
+import { GroupInfo, GroupMessageEventData, MemberDecreaseEventData, MemberInfo, Ret } from "oicq";
 import { DB_KEY } from "#group_helper/util/constants";
 
 const group_welcome: OrderConfig = {
@@ -60,6 +60,66 @@ const forbidden_word_list: OrderConfig = {
 	auth: AuthLevel.User,
 	main: "achieves/forbidden_word_list",
 	detail: "该指令用于查看已设置的屏蔽词"
+};
+
+const ban_user: OrderConfig = {
+	type: "order",
+	cmdKey: "group-helper.ban_user",
+	desc: [ "禁言", "[@] [禁言时间]" ],
+	headers: [ "bu" ],
+	regexps: [ "\\[CQ:at,qq=\\d+.*]", "((\\d{1,2}d)?(\\d+h)?(\\d+m?)?){1,3}" ],
+	scope: MessageScope.Group,
+	auth: AuthLevel.User,
+	main: "achieves/ban_user",
+	detail: "该指令用于给群用户设置禁言时间，可以是1d1h10m，即禁言1天1小时10分钟，可以如果某个是0可以略过，如：1d10m，不写时间单位默认是分钟。"
+};
+
+const unban_user: OrderConfig = {
+	type: "order",
+	cmdKey: "group-helper.unban_user",
+	desc: [ "取消禁言", "[@]" ],
+	headers: [ "ubu" ],
+	regexps: [ "\\[CQ:at,qq=\\d+.*]" ],
+	scope: MessageScope.Group,
+	auth: AuthLevel.User,
+	main: "achieves/unban_user",
+	detail: "该指令用于给群用户取消禁言。"
+};
+
+const decrease_group_notice: OrderConfig = {
+	type: "order",
+	cmdKey: "group-helper.decrease_group_notice",
+	desc: [ "设置退群提醒", "消息模版" ],
+	headers: [ "dgn" ],
+	regexps: [ ".+" ],
+	scope: MessageScope.Group,
+	auth: AuthLevel.User,
+	main: "achieves/decrease_group_notice",
+	detail: "通过该指令设置退群消息模版，{}用来替换成退群用户名或用户QQ号，为了隐私性也可以不设置{}。"
+};
+
+const decrease_group_notice_cancel: OrderConfig = {
+	type: "order",
+	cmdKey: "group-helper.decrease_group_notice_cancel",
+	desc: [ "取消退群提醒", "" ],
+	headers: [ "dgnc" ],
+	regexps: [ "" ],
+	scope: MessageScope.Group,
+	auth: AuthLevel.User,
+	main: "achieves/decrease_group_notice_cancel",
+	detail: "通过该指令取消退群提醒。"
+};
+
+const remove_group_user: OrderConfig = {
+	type: "order",
+	cmdKey: "group-helper.remove_group_user",
+	desc: [ "踢人出群", "[@]" ],
+	headers: [ "rgu" ],
+	regexps: [ "\\[CQ:at,qq=\\d+.*]" ],
+	scope: MessageScope.Group,
+	auth: AuthLevel.User,
+	main: "achieves/remove_group_user",
+	detail: "通过该指令将某用户踢出群聊。"
 };
 
 async function initWelcome( { redis, client }: BOT ) {
@@ -129,11 +189,30 @@ async function listeningGroupMsg( { redis, client, logger, message, command, aut
 }
 
 function decreaseGroup( bot: BOT ) {
-	return async function ( memberData: MemberDecreaseEventData ) {
-		// 如果退出群聊的是 BOT 那么就把该群聊的新成员入群监听和屏蔽词去掉
-		if ( memberData.user_id === bot.config.number ) {
-			await bot.redis.deleteKey( `${ DB_KEY.welcome_content_key }.${ memberData.group_id }` );
-			await bot.redis.deleteKey( `${ DB_KEY.forbidden_words_key }.${ memberData.group_id }` );
+	return async function ( {
+		                        group_id,
+		                        group,
+		                        user_id,
+		                        dismiss,
+		                        operator_id,
+		                        member,
+		                        self_id
+	                        }: MemberDecreaseEventData ) {
+		const { data }: Ret<MemberInfo> = await bot.client.getGroupMemberInfo( group_id, operator_id );
+		const { data: groupData }: Ret<GroupInfo> = await bot.client.getGroupInfo( group_id );
+		bot.logger.info( `${ user_id === self_id ? `${ bot.client.nickname } (BOT) ` : `${ user_id }(${ member?.nickname })` } ${ dismiss ? `解散了群聊(${ group?.group_name || groupData?.group_name }).` : `退出了群聊 ${ group_id }(${ group?.group_name || groupData?.group_name })，退群原因是：${ operator_id === user_id ? "自行退群" : `被 ${ operator_id }(${ data?.nickname }) 踢出群聊` }.` }` );
+		// 如果退出群聊的是 BOT 或者群聊被解散那么就把该群聊的新成员入群监听和屏蔽词去掉
+		if ( user_id === bot.config.number || dismiss ) {
+			await bot.redis.deleteKey( `${ DB_KEY.welcome_content_key }.${ group_id }` );
+			await bot.redis.deleteKey( `${ DB_KEY.forbidden_words_key }.${ group_id }` );
+			await bot.redis.delHash( DB_KEY.decrease_group_notice_key, group_id.toString( 10 ) );
+			return;
+		}
+		
+		const noticeMsg = await bot.redis.getHashField( DB_KEY.decrease_group_notice_key, group_id.toString( 10 ) );
+		if ( noticeMsg ) {
+			const sendMessage = await bot.message.getSendMessageFunc( -1, MessageType.Group, group_id );
+			await sendMessage( noticeMsg.replace( "{}", ( member?.nickname || `${ user_id } ` ) ), false );
 		}
 	}
 }
@@ -142,19 +221,20 @@ function decreaseGroup( bot: BOT ) {
 export async function init( bot: BOT ): Promise<PluginSetting> {
 	// 初始化已经启用欢迎词的群监听事件
 	await initWelcome( bot );
-	bot.logger.mark( "--[group_helper]--初始化欢迎词监听事件完成..." )
+	bot.logger.info( "[group_helper] - 初始化欢迎词监听事件完成..." );
 	
 	// 监听群聊消息，处理包含屏蔽词的消息
 	await listeningGroupMsg( bot );
-	bot.logger.mark( "--[group_helper]--初始化屏蔽词监听事件完成..." )
+	bot.logger.info( "[group_helper] - 初始化屏蔽词监听事件完成..." );
 	
 	// 监听群聊退出事件
 	bot.client.on( "notice.group.decrease", decreaseGroup( bot ) );
-	bot.logger.info( "[group_helper]--群聊退出事件监听已启动成功!" );
+	bot.logger.info( "[group_helper] - 群聊退出事件监听已启动成功!" );
 	
 	return {
 		pluginName: "group_helper",
-		cfgList: [ group_welcome, group_welcome_enable, group_forbidden_word, forbidden_word_list ],
+		cfgList: [ group_welcome, group_welcome_enable, group_forbidden_word, forbidden_word_list, ban_user, decrease_group_notice
+			, unban_user, decrease_group_notice_cancel, remove_group_user ],
 		repo: "BennettChina/group_helper"
 	};
 }
