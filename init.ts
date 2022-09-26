@@ -139,14 +139,19 @@ async function initWelcome( { redis, client }: BOT ) {
 
 async function listeningGroupMsg( { redis, client, logger, message, command, auth, config }: BOT ) {
 	client.on( "message.group", async ( messageData: GroupMessageEventData ) => {
-		let { raw_message, group_id, group_name, message_id, self_id } = messageData;
+		let { raw_message, group_id, group_name, message_id, self_id, atme } = messageData;
 		const { user_id, nickname } = messageData.sender;
 		
 		// 判断消息是否指令消息，指令消息不需要判断是否有屏蔽词
-		const atBOTReg: RegExp = new RegExp( `^ *\\[CQ:at,qq=${ config.number }.*?]` );
-		if ( config.atBOT && atBOTReg.test( raw_message ) ) {
-			raw_message = raw_message.replace( atBOTReg, "" ).trim();
+		if ( config.atBOT && atme ) {
+			const atBotReg = new RegExp( `\\[CQ:at,qq=${self_id}.*?]` );
+			raw_message = raw_message.replace( atBotReg, "" ).trim();
 		}
+		
+		// 去除回复消息的 cq 字符串
+		const replyReg = new RegExp( `\\[CQ:reply,id=[\\w=+/]+]\\s*(\\[CQ:at,qq=\\d+,text=.*])?` );
+		raw_message = raw_message.replace( replyReg, "" ).trim() || '';
+		
 		const userAuth = await auth.get( user_id );
 		const unionReg: RegExp = command.getUnion( userAuth, msg.MessageScope.Group );
 		if ( unionReg.test( raw_message ) ) {
