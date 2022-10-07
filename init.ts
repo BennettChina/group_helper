@@ -152,9 +152,14 @@ async function listeningGroupMsg( { redis, client, logger, message, command, aut
 		const replyReg = new RegExp( `\\[CQ:reply,id=[\\w=+/]+]\\s*(\\[CQ:at,qq=\\d+,text=.*])?` );
 		raw_message = raw_message.replace( replyReg, "" ).trim() || '';
 		
-		const userAuth = await auth.get( user_id );
-		const unionReg: RegExp = command.getUnion( userAuth, msg.MessageScope.Group );
-		if ( unionReg.test( raw_message ) ) {
+		try {
+			const userAuth = await auth.get( user_id );
+			const unionReg: RegExp = command.getUnion( userAuth, msg.MessageScope.Group );
+			if ( unionReg.test( raw_message ) ) {
+				return;
+			}
+		} catch ( e ) {
+			logger.warn( "指令检测失败", e );
 			return;
 		}
 		
@@ -238,6 +243,7 @@ export async function init( bot: BOT ): Promise<PluginSetting> {
 	
 	return {
 		pluginName: "group_helper",
+		aliases: [ "群聊助手", "群助手" ],
 		cfgList: [ group_welcome, group_welcome_enable, group_forbidden_word, forbidden_word_list, ban_user, decrease_group_notice
 			, unban_user, decrease_group_notice_cancel, remove_group_user ],
 		repo: "BennettChina/group_helper"
