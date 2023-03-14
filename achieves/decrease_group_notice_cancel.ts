@@ -1,10 +1,10 @@
 import { InputParameter } from "@modules/command";
-import { GroupMessageEventData } from "oicq";
+import { GroupMessageEvent } from "icqq";
 import { DB_KEY } from "#group_helper/util/constants";
 
 export async function main( { sendMessage, messageData, redis }: InputParameter ): Promise<void> {
-	const { sender: { role }, group_id } = <GroupMessageEventData>messageData;
-	if ( role === 'member' ) {
+	const { member: sender, group_id } = <GroupMessageEvent>messageData;
+	if ( !sender.is_admin ) {
 		await sendMessage( '您不是本群管理不能使用该指令', true );
 		return;
 	}

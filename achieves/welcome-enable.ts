@@ -1,14 +1,14 @@
 import { InputParameter, SwitchMatchResult } from "@modules/command";
-import * as sdk from "oicq";
-import { GroupMessageEventData } from "oicq";
+import * as sdk from "icqq";
+import { GroupMessageEvent } from "icqq";
 import { MessageType } from "@modules/message";
 import bot from 'ROOT';
 import { DB_KEY } from "#group_helper/util/constants";
 
 export async function main( { sendMessage, matchResult, messageData, client, redis }: InputParameter ): Promise<void> {
 	const match = <SwitchMatchResult>matchResult;
-	const { sender: { role }, group_id } = <GroupMessageEventData>messageData;
-	if ( role === 'member' ) {
+	const { member: sender, group_id } = <GroupMessageEvent>messageData;
+	if ( !sender.is_admin ) {
 		await sendMessage( '您不是本群管理不能使用该指令', true );
 		return;
 	}
@@ -38,7 +38,7 @@ export async function main( { sendMessage, matchResult, messageData, client, red
 
 
 export function groupIncrease( groupId: number ) {
-	return async function ( eventData: sdk.MemberIncreaseEventData ) {
+	return async function ( eventData: sdk.MemberIncreaseEvent ) {
 		if ( eventData.group_id === groupId ) {
 			let {
 				content,

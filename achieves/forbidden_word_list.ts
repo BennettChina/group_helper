@@ -18,7 +18,7 @@ export async function main( {
 		const msg = forbidden_words.join( '\n- ' );
 		await sendMessage( `已设置的屏蔽词：\n- ${ msg }` );
 	} else {
-		const check = await auth.check( messageData.user_id, AuthLevel.Master );
+		const check = await auth.check( messageData.sender.user_id, AuthLevel.Master );
 		if ( check ) {
 			const global_forbidden_words: string[] = await redis.getSet( DB_KEY.forbidden_words_global_key );
 			if ( global_forbidden_words.length === 0 ) {

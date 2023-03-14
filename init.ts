@@ -5,7 +5,7 @@ import { MessageScope, MessageType } from "@modules/message";
 import { AuthLevel } from "@modules/management/auth";
 import { groupIncrease } from "./achieves/welcome-enable";
 import { BOT } from "@modules/bot";
-import { GroupInfo, GroupMessageEventData, MemberDecreaseEventData, MemberInfo, Ret } from "oicq";
+import { GroupInfo, GroupMessageEvent, MemberDecreaseEvent, MemberInfo } from "icqq";
 import { DB_KEY } from "#group_helper/util/constants";
 
 const group_welcome: OrderConfig = {
@@ -67,7 +67,7 @@ const ban_user: OrderConfig = {
 	cmdKey: "group-helper.ban_user",
 	desc: [ "禁言", "[@] [禁言时间]" ],
 	headers: [ "bu" ],
-	regexps: [ "\\[CQ:at,qq=\\d+.*]", "((\\d{1,2}d)?(\\d+h)?(\\d+m?)?){1,3}" ],
+	regexps: [ "\\[CQ:at,type=at,qq=\\d+.*]", "((\\d{1,2}d)?(\\d+h)?(\\d+m?)?){1,3}" ],
 	scope: MessageScope.Group,
 	auth: AuthLevel.User,
 	main: "achieves/ban_user",
@@ -79,7 +79,7 @@ const unban_user: OrderConfig = {
 	cmdKey: "group-helper.unban_user",
 	desc: [ "取消禁言", "[@]" ],
 	headers: [ "ubu" ],
-	regexps: [ "\\[CQ:at,qq=\\d+.*]" ],
+	regexps: [ "\\[CQ:at,type=at,qq=\\d+.*]" ],
 	scope: MessageScope.Group,
 	auth: AuthLevel.User,
 	main: "achieves/unban_user",
@@ -115,7 +115,7 @@ const remove_group_user: OrderConfig = {
 	cmdKey: "group-helper.remove_group_user",
 	desc: [ "踢人出群", "[@]" ],
 	headers: [ "rgu" ],
-	regexps: [ "\\[CQ:at,qq=\\d+.*]" ],
+	regexps: [ "\\[CQ:at,type=at,qq=\\d+.*]" ],
 	scope: MessageScope.Group,
 	auth: AuthLevel.User,
 	main: "achieves/remove_group_user",
@@ -138,24 +138,26 @@ async function initWelcome( { redis, client }: BOT ) {
 }
 
 async function listeningGroupMsg( { redis, client, logger, message, command, auth, config }: BOT ) {
-	client.on( "message.group", async ( messageData: GroupMessageEventData ) => {
-		let { raw_message, group_id, group_name, message_id, self_id, atme } = messageData;
+	client.on( "message.group", async ( messageData: GroupMessageEvent ) => {
+		const { group_id, group_name, message_id, atme } = messageData;
 		const { user_id, nickname } = messageData.sender;
 		
 		// 判断消息是否指令消息，指令消息不需要判断是否有屏蔽词
+		let cqcode = messageData.toCqcode();
 		if ( config.atBOT && atme ) {
-			const atBotReg = new RegExp( `\\[CQ:at,qq=${self_id}.*?]` );
-			raw_message = raw_message.replace( atBotReg, "" ).trim();
+			const atBotReg = new RegExp( `\\[CQ:at,type=at,qq=${config.number}.*?]` );
+			cqcode = cqcode.replace( atBotReg, "" ).trim();
 		}
 		
 		// 去除回复消息的 cq 字符串
-		const replyReg = new RegExp( `\\[CQ:reply,id=[\\w=+/]+]\\s*(\\[CQ:at,qq=\\d+,text=.*])?` );
-		raw_message = raw_message.replace( replyReg, "" ).trim() || '';
+		const replyReg = new RegExp( `\\[CQ:reply,id=[\\w=+/]+]\\s*(\\[CQ:at,type=at,qq=\\d+,text=.*])?` );
+		cqcode = cqcode.replace( replyReg, "" ).trim() || '';
+		logger.debug( `>>去掉@消息的实际消息: ${ cqcode }` );
 		
 		try {
 			const userAuth = await auth.get( user_id );
 			const unionReg: RegExp = command.getUnion( userAuth, msg.MessageScope.Group );
-			if ( unionReg.test( raw_message ) ) {
+			if ( unionReg.test( cqcode ) ) {
 				return;
 			}
 		} catch ( e ) {
@@ -164,8 +166,8 @@ async function listeningGroupMsg( { redis, client, logger, message, command, aut
 		}
 		
 		// 获取群成员信息
-		const ret = await client.getGroupMemberInfo( group_id, user_id );
-		const myRet = await client.getGroupMemberInfo( group_id, self_id );
+		const sender = client.pickMember( group_id, user_id );
+		const self = client.pickMember( group_id, config.number );
 		
 		// 获取屏蔽词集合
 		const forbidden_words: string[] = await redis.getSet( `${ DB_KEY.forbidden_words_key }.${ group_id }` );
@@ -175,22 +177,17 @@ async function listeningGroupMsg( { redis, client, logger, message, command, aut
 		
 		// 判断消息中是否包含屏蔽词
 		for ( let forbiddenWord of list ) {
-			if ( raw_message.search( forbiddenWord ) !== -1 ) {
+			if ( cqcode.search( forbiddenWord ) !== -1 ) {
 				const includes = global_forbidden_words.includes( forbiddenWord );
-				logger.info( `--[group_helper]--[${ group_name }]--[${ nickname }]发言包含${ includes ? ' BOT 持有者' : '该群' }设置的屏蔽词[${ forbiddenWord }]，将尝试撤回 TA 的消息。` );
-				if ( ret.retcode === 0 && myRet.retcode === 0 ) {
-					if ( ret.data.role === 'owner' ) {
-						logger.info( "--[group_helper]-- 该消息是群主发言，无法撤回。" );
-					} else if ( myRet.data.role === 'member' ) {
-						logger.info( "--[group_helper]-- BOT 无管理权限无法撤回。" );
-					} else {
-						await client.deleteMsg( message_id );
-					}
+				logger.info( `[group_helper] [${ group_name }] [${ nickname }]发言包含${ includes ? ' BOT 持有者' : '该群' }设置的屏蔽词[${ forbiddenWord }]，将尝试撤回 TA 的消息。` );
+				if ( sender.is_owner ) {
+					logger.info( "[group_helper] 该消息是群主发言，无法撤回。" );
+				} else if ( !self.is_admin ) {
+					logger.info( "[group_helper] BOT 无管理权限无法撤回。" );
 				} else {
-					logger.warn( "--[group_helper]-- 获取群成员信息失败，无法判断是否有权限撤回消息，将直接尝试撤回。" );
 					await client.deleteMsg( message_id );
 				}
-				const sendMsg = await message.getSendMessageFunc( user_id, MessageType.Group, group_id );
+				const sendMsg = message.getSendMessageFunc( user_id, MessageType.Group, group_id );
 				await sendMsg( `你的发言包含${ includes ? ' BOT 持有者' : '本群' }设置的屏蔽词[${ forbiddenWord }]，请注意发言!` );
 				return;
 			}
@@ -206,11 +203,10 @@ function decreaseGroup( bot: BOT ) {
 		                        dismiss,
 		                        operator_id,
 		                        member,
-		                        self_id
-	                        }: MemberDecreaseEventData ) {
-		const { data }: Ret<MemberInfo> = await bot.client.getGroupMemberInfo( group_id, operator_id );
-		const { data: groupData }: Ret<GroupInfo> = await bot.client.getGroupInfo( group_id );
-		bot.logger.info( `${ user_id === self_id ? `${ bot.client.nickname } (BOT) ` : `${ user_id }(${ member?.nickname })` } ${ dismiss ? `解散了群聊(${ group?.group_name || groupData?.group_name }).` : `退出了群聊 ${ group_id }(${ group?.group_name || groupData?.group_name })，退群原因是：${ operator_id === user_id ? "自行退群" : `被 ${ operator_id }(${ data?.nickname }) 踢出群聊` }.` }` );
+	                        }: MemberDecreaseEvent ) {
+		const { nickname }: MemberInfo = await bot.client.getGroupMemberInfo( group_id, operator_id );
+		const { group_name }: GroupInfo = await bot.client.getGroupInfo( group_id );
+		bot.logger.info( `${ user_id === bot.config.number ? `${ bot.client.nickname } (BOT) ` : `${ user_id }(${ member?.nickname })` } ${ dismiss ? `解散了群聊(${ group.name || group_name }).` : `退出了群聊 ${ group_id }(${ group?.name || group_name })，退群原因是：${ operator_id === user_id ? "自行退群" : `被 ${ operator_id }(${ nickname }) 踢出群聊` }.` }` );
 		// 如果退出群聊的是 BOT 或者群聊被解散那么就把该群聊的新成员入群监听和屏蔽词去掉
 		if ( user_id === bot.config.number || dismiss ) {
 			await bot.redis.deleteKey( `${ DB_KEY.welcome_content_key }.${ group_id }` );
@@ -246,6 +242,10 @@ export async function init( bot: BOT ): Promise<PluginSetting> {
 		aliases: [ "群聊助手", "群助手" ],
 		cfgList: [ group_welcome, group_welcome_enable, group_forbidden_word, forbidden_word_list, ban_user, decrease_group_notice
 			, unban_user, decrease_group_notice_cancel, remove_group_user ],
-		repo: "BennettChina/group_helper"
+		repo: {
+			owner: "BennettChina",
+			repoName: "group_helper",
+			ref: "icqq"
+		}
 	};
 }

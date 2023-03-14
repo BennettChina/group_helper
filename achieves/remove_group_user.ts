@@ -1,17 +1,17 @@
 import { InputParameter } from "@modules/command";
-import { GroupMessageEventData, MemberInfo, Ret } from "oicq";
+import { GroupMessageEvent, Member } from "icqq";
 import { isAt } from "#group_helper/util/tools";
 
 export async function main( { sendMessage, messageData, client }: InputParameter ): Promise<void> {
 	let content: string = messageData.raw_message;
-	const { sender: { role }, group_id, self_id } = <GroupMessageEventData>messageData;
-	if ( role === 'member' ) {
+	const { member: sender, group_id } = <GroupMessageEvent>messageData;
+	if ( !sender.is_admin ) {
 		await sendMessage( '您不是本群管理不能使用该指令', true );
 		return;
 	}
 	
-	const ret: Ret<MemberInfo> = await client.getGroupMemberInfo( group_id, self_id );
-	if ( ret.data?.role === 'member' ) {
+	const member: Member = client.pickMember( group_id, client.uin );
+	if ( !member.is_admin ) {
 		await sendMessage( 'BOT 无群管理权限无法踢人' );
 		return;
 	}
@@ -22,5 +22,5 @@ export async function main( { sendMessage, messageData, client }: InputParameter
 		return;
 	}
 	
-	await client.setGroupKick( group_id, atId );
+	await client.pickGroup( group_id ).kickMember( atId );
 }

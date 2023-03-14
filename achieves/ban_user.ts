@@ -1,5 +1,5 @@
 import { InputParameter } from "@modules/command";
-import { GroupMessageEventData, MemberInfo, Ret } from "oicq";
+import { GroupMessageEvent, Member } from "icqq";
 import { isAt } from "#group_helper/util/tools";
 
 function hasBanTime( message: string ): {
@@ -20,14 +20,14 @@ const MAX_BAN_TIME = ( 30 * 24 * 60 - 60 ) * 60;
 
 export async function main( { sendMessage, messageData, client }: InputParameter ): Promise<void> {
 	let content: string = messageData.raw_message;
-	const { sender: { role }, group_id, self_id } = <GroupMessageEventData>messageData;
-	if ( role === 'member' ) {
+	const { member: sender, group_id } = <GroupMessageEvent>messageData;
+	if ( !sender.is_admin ) {
 		await sendMessage( '您不是本群管理不能使用该指令' );
 		return;
 	}
 	
-	const ret: Ret<MemberInfo> = await client.getGroupMemberInfo( group_id, self_id );
-	if ( ret.data?.role === 'member' ) {
+	const member: Member = client.pickMember( group_id, client.uin );
+	if ( !member.is_admin ) {
 		await sendMessage( 'BOT 无群管理权限无法禁言用户' );
 		return;
 	}
@@ -46,12 +46,12 @@ export async function main( { sendMessage, messageData, client }: InputParameter
 	}
 	banTime = banTime > MAX_BAN_TIME ? MAX_BAN_TIME : banTime;
 	
-	const atIdRet: Ret<MemberInfo> = await client.getGroupMemberInfo( group_id, atId );
-	if ( atIdRet.data?.role !== 'member' ) {
+	const atIdMember: Member = client.pickMember( group_id, atId );
+	if ( atIdMember.is_admin ) {
 		await sendMessage( '群管理无法被禁言' );
 		return;
 	}
 	
 	// 禁言api时间单位:秒
-	await client.setGroupBan( group_id, atId, banTime );
+	await atIdMember.mute( banTime );
 }
