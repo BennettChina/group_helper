@@ -5,7 +5,7 @@ import { MessageScope, MessageType } from "@modules/message";
 import { AuthLevel } from "@modules/management/auth";
 import { groupIncrease } from "./achieves/welcome-enable";
 import { BOT } from "@modules/bot";
-import { GroupInfo, GroupMessageEvent, MemberDecreaseEvent, MemberInfo } from "icqq";
+import { GroupMessageEvent, Member, MemberDecreaseEvent } from "icqq";
 import { DB_KEY } from "#group_helper/util/constants";
 
 const group_welcome: OrderConfig = {
@@ -86,6 +86,21 @@ const unban_user: OrderConfig = {
 	detail: "该指令用于给群用户取消禁言。"
 };
 
+const ban_all: SwitchConfig = {
+	type: "switch",
+	mode: "single",
+	cmdKey: "group-helper.ban_all",
+	desc: [ "全员禁言", "#{OPT}" ],
+	header: "全员禁言",
+	regexp: [ "#{OPT}" ],
+	onKey: "开启",
+	offKey: "关闭",
+	scope: MessageScope.Group,
+	auth: AuthLevel.User,
+	main: "achieves/ban_all",
+	detail: "该指令用于开启或者关闭全员禁言。"
+};
+
 const decrease_group_notice: OrderConfig = {
 	type: "order",
 	cmdKey: "group-helper.decrease_group_notice",
@@ -137,7 +152,7 @@ async function initWelcome( { redis, client }: BOT ) {
 	}
 }
 
-async function listeningGroupMsg( { redis, client, logger, message, command, auth, config }: BOT ) {
+function listeningGroupMsg( { redis, client, logger, message, command, auth, config }: BOT ): void {
 	client.on( "message.group", async ( messageData: GroupMessageEvent ) => {
 		const { group_id, group_name, message_id, atme } = messageData;
 		const { user_id, nickname } = messageData.sender;
@@ -195,32 +210,33 @@ async function listeningGroupMsg( { redis, client, logger, message, command, aut
 	} );
 }
 
-function decreaseGroup( bot: BOT ) {
-	return async function ( {
-		                        group_id,
-		                        group,
-		                        user_id,
-		                        dismiss,
-		                        operator_id,
-		                        member,
-	                        }: MemberDecreaseEvent ) {
-		const { nickname }: MemberInfo = await bot.client.getGroupMemberInfo( group_id, operator_id );
-		const { group_name }: GroupInfo = await bot.client.getGroupInfo( group_id );
+function decreaseGroup( bot: BOT ): void {
+	bot.client.on( "notice.group.decrease", async ( {
+		                                                group,
+		                                                group_id,
+		                                                user_id,
+		                                                dismiss,
+		                                                operator_id,
+		                                                member
+	                                                }: MemberDecreaseEvent ) => {
+		const { info }: Member = await group.pickMember( operator_id );
+		const nickname: string | undefined = info?.nickname;
+		const group_name: string | undefined = group.name;
 		bot.logger.info( `${ user_id === bot.config.number ? `${ bot.client.nickname } (BOT) ` : `${ user_id }(${ member?.nickname })` } ${ dismiss ? `解散了群聊(${ group.name || group_name }).` : `退出了群聊 ${ group_id }(${ group?.name || group_name })，退群原因是：${ operator_id === user_id ? "自行退群" : `被 ${ operator_id }(${ nickname }) 踢出群聊` }.` }` );
 		// 如果退出群聊的是 BOT 或者群聊被解散那么就把该群聊的新成员入群监听和屏蔽词去掉
 		if ( user_id === bot.config.number || dismiss ) {
 			await bot.redis.deleteKey( `${ DB_KEY.welcome_content_key }.${ group_id }` );
 			await bot.redis.deleteKey( `${ DB_KEY.forbidden_words_key }.${ group_id }` );
-			await bot.redis.delHash( DB_KEY.decrease_group_notice_key, group_id.toString( 10 ) );
+			await bot.redis.delHash( DB_KEY.decrease_group_notice_key, `${ group_id }` );
 			return;
 		}
 		
-		const noticeMsg = await bot.redis.getHashField( DB_KEY.decrease_group_notice_key, group_id.toString( 10 ) );
+		const noticeMsg = await bot.redis.getHashField( DB_KEY.decrease_group_notice_key, `${ group_id }` );
 		if ( noticeMsg ) {
-			const sendMessage = await bot.message.getSendMessageFunc( -1, MessageType.Group, group_id );
+			const sendMessage = bot.message.getSendMessageFunc( -1, MessageType.Group, group_id );
 			await sendMessage( noticeMsg.replace( "{}", ( member?.nickname || `${ user_id } ` ) ), false );
 		}
-	}
+	} );
 }
 
 // 不可 default 导出，函数名固定
@@ -230,18 +246,18 @@ export async function init( bot: BOT ): Promise<PluginSetting> {
 	bot.logger.info( "[group_helper] - 初始化欢迎词监听事件完成..." );
 	
 	// 监听群聊消息，处理包含屏蔽词的消息
-	await listeningGroupMsg( bot );
+	listeningGroupMsg( bot );
 	bot.logger.info( "[group_helper] - 初始化屏蔽词监听事件完成..." );
 	
 	// 监听群聊退出事件
-	bot.client.on( "notice.group.decrease", decreaseGroup( bot ) );
+	decreaseGroup( bot );
 	bot.logger.info( "[group_helper] - 群聊退出事件监听已启动成功!" );
 	
 	return {
 		pluginName: "group_helper",
 		aliases: [ "群聊助手", "群助手" ],
 		cfgList: [ group_welcome, group_welcome_enable, group_forbidden_word, forbidden_word_list, ban_user, decrease_group_notice
-			, unban_user, decrease_group_notice_cancel, remove_group_user ],
+			, unban_user, decrease_group_notice_cancel, remove_group_user, ban_all ],
 		repo: {
 			owner: "BennettChina",
 			repoName: "group_helper",
