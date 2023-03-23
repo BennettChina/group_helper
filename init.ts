@@ -261,7 +261,7 @@ export async function init( bot: BOT ): Promise<PluginSetting> {
 		repo: {
 			owner: "BennettChina",
 			repoName: "group_helper",
-			ref: "icqq"
+			ref: "main"
 		}
 	};
 }
