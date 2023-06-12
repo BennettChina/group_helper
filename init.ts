@@ -3,10 +3,13 @@ import { OrderConfig, SwitchConfig } from "@modules/command";
 import * as msg from "@modules/message";
 import { MessageScope, MessageType } from "@modules/message";
 import { AuthLevel } from "@modules/management/auth";
-import { groupIncrease } from "./achieves/welcome-enable";
+import { groupIncrease } from "#group_helper/achieves/welcome-enable";
 import { BOT } from "@modules/bot";
-import { GroupMessageEvent, Member, MemberDecreaseEvent } from "icqq";
+import { Discuss, Group, GroupMessageEvent, Member, MemberDecreaseEvent, User } from "icqq";
 import { DB_KEY } from "#group_helper/util/constants";
+import { DiscussMessageEvent, PrivateMessageEvent } from "icqq/lib/events";
+import { JsonElem } from "icqq/lib/message/elements";
+import GroupHelperConfig from "#group_helper/module/config";
 
 const group_welcome: OrderConfig = {
 	type: "order",
@@ -239,8 +242,43 @@ function decreaseGroup( bot: BOT ): void {
 	} );
 }
 
+function allMessageEvent( bot: BOT, helperConfig: GroupHelperConfig ): void {
+	bot.client.on( "message", async ( event: PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent ) => {
+		if ( !helperConfig.getMiniAppUrl ) {
+			return;
+		}
+		
+		if ( event.message_type === 'discuss' ) {
+			// 不处理频道的消息
+			return;
+		}
+		const item: JsonElem = <JsonElem>event.message.find( value => value.type === "json" )
+		if ( !item ) {
+			// 不是json消息不处理
+			return
+		}
+		const json: any = JSON.parse( item.data )
+		if ( json['app'] === 'com.tencent.miniapp_01' ) {
+			const client: User | Group | Discuss = event.message_type === 'private' ?
+				bot.client.pickUser( event.from_id ) : bot.client.pickGroup( event.group_id );
+			
+			const title = json?.meta?.detail_1?.desc;
+			const url = json?.meta?.detail_1?.qqdocurl;
+			if ( !title || !url ) {
+				bot.logger.warn( `不支持的QQ小程序消息` );
+				return;
+			}
+			await client.sendMsg( `监测到来自${ json['desc'] }的QQ小程序消息：${ title }` );
+			await client.sendMsg( `已自动为您提取原网页地址：${ url }` );
+		}
+	} )
+}
+
 // 不可 default 导出，函数名固定
 export async function init( bot: BOT ): Promise<PluginSetting> {
+	const helperConfig = GroupHelperConfig.create( bot.file );
+	bot.refresh.registerRefreshableFile( GroupHelperConfig.FILE_NAME, helperConfig );
+	
 	// 初始化已经启用欢迎词的群监听事件
 	await initWelcome( bot );
 	bot.logger.info( "[group_helper] - 初始化欢迎词监听事件完成..." );
@@ -253,9 +291,13 @@ export async function init( bot: BOT ): Promise<PluginSetting> {
 	decreaseGroup( bot );
 	bot.logger.info( "[group_helper] - 群聊退出事件监听已启动成功!" );
 	
+	// 监听所有消息处理小程序信息
+	allMessageEvent( bot, helperConfig );
+	bot.logger.info( "[group_helper] - 所有消息事件监听已启动成功!" );
+	
 	return {
 		pluginName: "group_helper",
-		aliases: [ "群聊助手", "群助手" ],
+		aliases: helperConfig.aliases,
 		cfgList: [ group_welcome, group_welcome_enable, group_forbidden_word, forbidden_word_list, ban_user, decrease_group_notice
 			, unban_user, decrease_group_notice_cancel, remove_group_user, ban_all ],
 		repo: {

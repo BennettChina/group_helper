@@ -73,8 +73,19 @@ git clone https://gitclone.com/github.com/BennettChina/group_helper.git
 权限: 群管理员
 ```
 
+## 配置
+
+```yaml
+# 是否启用获取小程序原链接
+getMiniAppUrl: false
+aliases:
+  - 群聊助手
+  - 群助手
+```
+
 ## 更新日志
 
+- 2023/06/12 添加提取QQ小程序原始链接的功能。
 - 2023/03/23 ⚠️适配主项目 `2.9.3` 版本 ⚠️。
 - 2022/10/07 支持插件的别名更新; catch 消息中的指令检测错误（虽然不知道怎么产生的，catch 就完了）
 - 2022/09/26 atme 判断优化，使用 oicq 消息中的 atme 作为判断依据；添加回复消息的 CQ 字符串移除功能；
