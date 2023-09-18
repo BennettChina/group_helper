@@ -262,13 +262,14 @@ function allMessageEvent( bot: BOT, helperConfig: GroupHelperConfig ): void {
 			const client: User | Group | Discuss = event.message_type === 'private' ?
 				bot.client.pickUser( event.from_id ) : bot.client.pickGroup( event.group_id );
 			
+			const from = json?.meta?.detail_1?.title;
 			const title = json?.meta?.detail_1?.desc;
 			const url = json?.meta?.detail_1?.qqdocurl;
 			if ( !title || !url ) {
 				bot.logger.warn( `不支持的QQ小程序消息` );
 				return;
 			}
-			await client.sendMsg( `监测到来自${ json['desc'] }的QQ小程序消息：${ title }` );
+			await client.sendMsg( `监测到来自[${ from }]的QQ小程序消息：${ title }` );
 			await client.sendMsg( `已自动为您提取原网页地址：${ url }` );
 		}
 	} )
