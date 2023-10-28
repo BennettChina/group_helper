@@ -53,7 +53,7 @@ function listeningGroupMsg( { redis, client, logger, message, command, auth, con
 		}
 		
 		// 去除回复消息的 cq 字符串
-		const replyReg = new RegExp( `\\[CQ:reply,id=[\\w=+/]+]\\s*(\\[CQ:at,qq=\\d+,text=.*])?` );
+		const replyReg = new RegExp( `\\[CQ:reply,id=[\\w=+\-/]+]\\s*(\\[CQ:at,qq=\\d+]\\s*)*` );
 		cqcode = cqcode.replace( replyReg, "" ).trim() || '';
 		logger.debug( `>>去掉@消息的实际消息: ${ cqcode }` );
 		
