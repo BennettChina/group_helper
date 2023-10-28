@@ -1,19 +1,19 @@
-import { InputParameter, SwitchMatchResult } from "@modules/command";
-import { GroupMessageEvent, Member } from "icqq";
+import { defineDirective, SwitchMatchResult } from "@/modules/command";
+import { GroupMessageEvent } from "@/modules/lib";
 
-export async function main( { sendMessage, messageData, matchResult, client }: InputParameter ): Promise<void> {
-	const { member: sender, group_id } = <GroupMessageEvent>messageData;
-	if ( !sender.is_admin ) {
+export default defineDirective( "switch", async ( { sendMessage, messageData, matchResult, client } ) => {
+	const { sender, group_id } = <GroupMessageEvent>messageData;
+	if ( sender.role === 'member' ) {
 		await sendMessage( '您不是本群管理不能使用该指令' );
 		return;
 	}
 	
-	const member: Member = client.pickMember( group_id, client.uin );
-	if ( !member.is_admin ) {
+	const member = await client.getGroupMemberInfo( group_id, client.uin );
+	if ( member.data.role === 'member' ) {
 		await sendMessage( 'BOT 无群管理权限无法禁言用户' );
 		return;
 	}
 	
 	const match = <SwitchMatchResult>matchResult;
-	await client.pickGroup( group_id ).muteAll( match.isOn() );
-}
+	await client.setGroupWholeBan( group_id, match.isOn );
+} )

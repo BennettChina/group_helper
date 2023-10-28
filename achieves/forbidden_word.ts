@@ -1,9 +1,9 @@
-import { InputParameter, SwitchMatchResult } from "@modules/command";
-import { checkAuth, htmlDecode } from "#group_helper/util/tools";
-import { isGroupMessage } from "@modules/message";
-import { DB_KEY } from "#group_helper/util/constants";
+import { defineDirective, SwitchMatchResult } from "@/modules/command";
+import { checkAuth, htmlDecode } from "#/group_helper/util/tools";
+import { isGroupMessage } from "@/modules/message";
+import { DB_KEY } from "#/group_helper/util/constants";
 
-export async function main( input: InputParameter ): Promise<void> {
+export default defineDirective( "switch", async ( input ) => {
 	const { sendMessage, messageData, redis, matchResult, logger } = input;
 	const match = <SwitchMatchResult>matchResult;
 	let [ forbidden_words ] = match.match;
@@ -20,11 +20,11 @@ export async function main( input: InputParameter ): Promise<void> {
 	if ( isGroupMessage( messageData ) ) {
 		dbKey = `${ DB_KEY.forbidden_words_key }.${ messageData.group_id }`;
 	}
-	if ( match.isOn() ) {
+	if ( match.isOn ) {
 		await redis.addSetMember( dbKey, ...forbidden_word_list );
 		await sendMessage( `设置屏蔽词[${ forbidden_words }]成功！` );
 		if ( isGroupMessage( messageData ) ) {
-			logger.info( `[group_helper] [${ messageData.group_name }] [${ messageData.sender.nickname }]设置了该群的屏蔽词[${ forbidden_words }]` )
+			logger.info( `[group_helper] [${ messageData.group_id }] [${ messageData.sender.nickname }]设置了该群的屏蔽词[${ forbidden_words }]` )
 		} else {
 			logger.info( `[group_helper] [${ messageData.sender.nickname }]设置了全局屏蔽词[${ forbidden_words }]` )
 		}
@@ -40,17 +40,17 @@ export async function main( input: InputParameter ): Promise<void> {
 		if ( remove_list.length === 0 ) {
 			await sendMessage( '移除屏蔽词失败，您未设置此屏蔽词。' );
 			if ( isGroupMessage( messageData ) ) {
-				logger.info( `[group_helper] [${ messageData.group_name }] [${ messageData.sender.nickname }]未能成功移除屏蔽词[${ forbidden_words }]，原因是该群未设置此屏蔽词。` )
+				logger.info( `[group_helper] [${ messageData.group_id }] [${ messageData.sender.nickname }]未能成功移除屏蔽词[${ forbidden_words }]，原因是该群未设置此屏蔽词。` )
 			} else {
 				logger.info( `[group_helper] [${ messageData.sender.nickname }]未能移除全局屏蔽词[${ forbidden_words }]，原因是未设置此全局屏蔽词。` )
 			}
 		} else {
 			await sendMessage( `移除屏蔽词[${ remove_list }]成功！` );
 			if ( isGroupMessage( messageData ) ) {
-				logger.info( `[group_helper] [${ messageData.group_name }] [${ messageData.sender.nickname }]移除了该群的屏蔽词[${ remove_list }]` )
+				logger.info( `[group_helper] [${ messageData.group_id }] [${ messageData.sender.nickname }]移除了该群的屏蔽词[${ remove_list }]` )
 			} else {
 				logger.info( `[group_helper] [${ messageData.sender.nickname }]移除了全局屏蔽词[${ remove_list }]` );
 			}
 		}
 	}
-}
+} )

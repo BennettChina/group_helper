@@ -1,0 +1,10 @@
+{
+  "name" : "group_helper",
+  "author" : "Bennett",
+  "private" : true,
+  "license" : "MIT",
+  "version" : "2.0.0",
+  "description" : "本项目为 Adachi-BOT 衍生插件，用于辅助管理QQ群的插件。",
+  "dependencies" : {
+  }
+}

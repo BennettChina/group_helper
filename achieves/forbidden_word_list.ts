@@ -1,14 +1,9 @@
-import { InputParameter } from "@modules/command";
-import { isGroupMessage } from "@modules/message";
-import { DB_KEY } from "#group_helper/util/constants";
-import { AuthLevel } from "@modules/management/auth";
+import { defineDirective } from "@/modules/command";
+import { isGroupMessage } from "@/modules/message";
+import { DB_KEY } from "#/group_helper/util/constants";
+import { AuthLevel } from "@/modules/management/auth";
 
-export async function main( {
-	                            sendMessage,
-	                            messageData,
-	                            redis,
-	                            auth
-                            }: InputParameter ): Promise<void> {
+export default defineDirective( "order", async ( { sendMessage, messageData, redis, auth } ) => {
 	if ( isGroupMessage( messageData ) ) {
 		const forbidden_words: string[] = await redis.getSet( `${ DB_KEY.forbidden_words_key }.${ messageData.group_id }` );
 		if ( forbidden_words.length === 0 ) {
@@ -31,4 +26,4 @@ export async function main( {
 			await sendMessage( '您无法查看 BOT 持有者设置的屏蔽词。' );
 		}
 	}
-}
+} )
