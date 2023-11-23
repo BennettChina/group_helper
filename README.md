@@ -13,14 +13,14 @@ git clone https://github.com/BennettChina/group_helper.git
 ### 网差用这两个
 
 ```shell
-git clone https://ghproxy.com/https://github.com/BennettChina/group_helper.git
+git clone https://mirror.ghproxy.com/https://github.com/BennettChina/group_helper.git
 ```
 
 ```shell
 git clone https://gitclone.com/github.com/BennettChina/group_helper.git
 ```
 
-> 感谢[GitClone](https://gitclone.com/) 和 [GitHub Proxy](https://ghproxy.com/) 提供的镜像服务！
+> 感谢[GitClone](https://gitclone.com/) 和 [GitHub Proxy](https://mirror.ghproxy.com/) 提供的镜像服务！
 
 ## 使用方法
 
