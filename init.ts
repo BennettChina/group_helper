@@ -139,6 +139,11 @@ function allMessageEvent( { logger, client }: BOT ) {
 			return
 		}
 		
+		// 处理JSON的转发消息
+		if ( !item.data?.data ) {
+			return
+		}
+		
 		const json: any = JSON.parse( item.data.data )
 		if ( json['app'] === 'com.tencent.miniapp_01' ) {
 			const from = json?.meta?.detail_1?.title;
